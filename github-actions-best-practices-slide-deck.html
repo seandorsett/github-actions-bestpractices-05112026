@@ -29,8 +29,6 @@
       max-width: 980px;
       margin: 0 auto;
       padding: 24px;
-      display: grid;
-      gap: 24px;
     }
 
     .slide {
@@ -39,10 +37,13 @@
       border-radius: 16px;
       padding: 28px;
       min-height: 70vh;
-      display: flex;
+      display: none;
       flex-direction: column;
       justify-content: center;
-      page-break-after: always;
+    }
+
+    .slide.active {
+      display: flex;
     }
 
     h1, h2 { margin: 0 0 16px; }
@@ -72,10 +73,50 @@
 
     .notes strong { color: var(--accent); }
 
+    .slide .notes { display: none; }
+
+    .controls {
+      position: sticky;
+      bottom: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: rgba(11, 16, 32, 0.9);
+      border-top: 1px solid var(--border);
+      backdrop-filter: blur(4px);
+    }
+
+    .controls button {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+
+    .controls button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .controls .counter {
+      min-width: 72px;
+      text-align: center;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
     @media print {
       body { background: white; color: black; }
+      .slides { max-width: none; padding: 0; }
       .slide { border-color: #ccc; background: white; color: black; }
-      .notes { color: #444; border-top-color: #ccc; }
+      .slide { display: block !important; page-break-after: always; }
+      .controls { display: none; }
       code { background: #f3f3f3; border-color: #ddd; color: #111; }
     }
   </style>
@@ -264,5 +305,143 @@
       <div class="notes"><strong>Presenter notes:</strong> End with an action-oriented close and ask the audience to commit to two concrete improvements.</div>
     </section>
   </main>
+  <div class="controls">
+    <button type="button" id="prevSlide">Previous</button>
+    <span class="counter" id="slideCounter" aria-live="polite"></span>
+    <button type="button" id="nextSlide">Next</button>
+    <button type="button" id="openPresenterView">Open Presenter Notes</button>
+  </div>
+  <script>
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const prevButton = document.getElementById('prevSlide');
+    const nextButton = document.getElementById('nextSlide');
+    const counter = document.getElementById('slideCounter');
+    const presenterButton = document.getElementById('openPresenterView');
+    let currentIndex = 0;
+    let presenterWindow = null;
+
+    function updatePresenterWindow() {
+      if (!presenterWindow || presenterWindow.closed) {
+        return;
+      }
+      const activeSlide = slides[currentIndex];
+      const notes = activeSlide.querySelector('.notes');
+      const presenterTitle = presenterWindow.document.getElementById('presenterSlideTitle');
+      const presenterCounter = presenterWindow.document.getElementById('presenterCounter');
+      const presenterNotes = presenterWindow.document.getElementById('presenterNotes');
+
+      if (!presenterTitle || !presenterCounter || !presenterNotes) {
+        return;
+      }
+
+      presenterTitle.textContent = activeSlide.querySelector('h1')?.textContent || `Slide ${currentIndex + 1}`;
+      presenterCounter.textContent = `Slide ${currentIndex + 1} of ${slides.length}`;
+      presenterNotes.innerHTML = notes ? notes.innerHTML : '<strong>Presenter notes:</strong> No notes for this slide.';
+    }
+
+    function renderSlide() {
+      slides.forEach((slide, index) => {
+        slide.classList.toggle('active', index === currentIndex);
+      });
+      prevButton.disabled = currentIndex === 0;
+      nextButton.disabled = currentIndex === slides.length - 1;
+      counter.textContent = `${currentIndex + 1} / ${slides.length}`;
+      updatePresenterWindow();
+    }
+
+    function goToSlide(index) {
+      const boundedIndex = Math.max(0, Math.min(slides.length - 1, index));
+      if (boundedIndex === currentIndex) {
+        return;
+      }
+      currentIndex = boundedIndex;
+      renderSlide();
+    }
+
+    function openPresenterView() {
+      if (!presenterWindow || presenterWindow.closed) {
+        presenterWindow = window.open('', 'presenterNotesWindow', 'width=480,height=640');
+      }
+
+      if (!presenterWindow) {
+        window.alert('Unable to open presenter window. Please allow pop-ups for this page.');
+        return;
+      }
+
+      presenterWindow.document.open();
+      presenterWindow.document.write(`
+        <!doctype html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8" />
+          <title>Presenter Notes</title>
+          <style>
+            body {
+              margin: 0;
+              padding: 20px;
+              font-family: Inter, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+              background: #0b1020;
+              color: #f4f7ff;
+              line-height: 1.5;
+            }
+            h1 {
+              margin: 0 0 6px;
+              font-size: 1.15rem;
+            }
+            .meta {
+              color: #bcc6e0;
+              margin-bottom: 18px;
+              font-size: 0.95rem;
+            }
+            #presenterNotes {
+              border-top: 1px dashed #273052;
+              padding-top: 14px;
+              color: #d7def2;
+            }
+            #presenterNotes strong {
+              color: #5ea1ff;
+            }
+          </style>
+        </head>
+        <body>
+          <h1 id="presenterSlideTitle"></h1>
+          <div id="presenterCounter" class="meta"></div>
+          <div id="presenterNotes"></div>
+        </body>
+        </html>
+      `);
+      presenterWindow.document.close();
+      updatePresenterWindow();
+      presenterWindow.focus();
+    }
+
+    prevButton.addEventListener('click', () => goToSlide(currentIndex - 1));
+    nextButton.addEventListener('click', () => goToSlide(currentIndex + 1));
+    presenterButton.addEventListener('click', openPresenterView);
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowRight' || event.key === 'PageDown' || event.key === ' ') {
+        event.preventDefault();
+        goToSlide(currentIndex + 1);
+      } else if (event.key === 'ArrowLeft' || event.key === 'PageUp') {
+        event.preventDefault();
+        goToSlide(currentIndex - 1);
+      } else if (event.key === 'Home') {
+        event.preventDefault();
+        goToSlide(0);
+      } else if (event.key === 'End') {
+        event.preventDefault();
+        goToSlide(slides.length - 1);
+      }
+    });
+
+    window.addEventListener('beforeunload', () => {
+      if (presenterWindow && !presenterWindow.closed) {
+        presenterWindow.close();
+      }
+    });
+
+    renderSlide();
+  </script>
 </body>
 </html>
