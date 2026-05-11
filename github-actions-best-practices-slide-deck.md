@@ -33,7 +33,7 @@ Presenter note: ~1 minute per slide.
 ---
 
 # 4) Lock down permissions by default
-- Start with least privilege: `permissions: read-all`.
+- Start with least privilege: `permissions: {}`.
 - Elevate only per job when writes are required.
 - Avoid broad default `GITHUB_TOKEN` access.
 
