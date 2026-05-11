@@ -37,15 +37,15 @@ Call out the ROI: fewer unnecessary runs means faster feedback and lower CI spen
 
 ---
 
-# 3) Pin actions to immutable SHAs
-- Use commit SHAs for third-party actions.
-- Update pins intentionally on a schedule.
-- Prevents supply-chain surprises.
-- Example: use `actions/checkout@8ade135...` instead of a floating `@v4` tag.
+# 3) Keep dependencies and Actions up to date
+- Enable automated updates for GitHub Actions and package manifests.
+- Review and merge update PRs on a regular cadence.
+- Use grouped updates to reduce review noise.
+- Example: Dependabot opens weekly PRs for Actions and npm dependencies with changelog links.
 
 <!--
 Presenter notes:
-Stress security posture: tags can move, SHAs cannot. Mention using Dependabot to help with updates.
+Outdated automation components increase risk and slow teams down. Regular updates keep security patches flowing.
 -->
 
 ---
@@ -210,5 +210,5 @@ Close with continuous improvement mindset: workflows are products that need metr
 ## Start small: pick 2 best practices this week
 
 1. Tighten token permissions
-2. Add SHA pinning policy
+2. Enable Dependabot updates for Actions
 3. Enable concurrency cancellation
