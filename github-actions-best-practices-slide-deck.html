@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GitHub Actions Best Practices</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #0b1020;
+      --panel: #111830;
+      --text: #f4f7ff;
+      --muted: #bcc6e0;
+      --accent: #5ea1ff;
+      --border: #273052;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+
+    .slides {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 24px;
+      display: grid;
+      gap: 24px;
+    }
+
+    .slide {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      min-height: 70vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      page-break-after: always;
+    }
+
+    h1, h2 { margin: 0 0 16px; }
+    h1 { font-size: 2rem; }
+    h2 { font-size: 1.3rem; color: var(--muted); }
+
+    ul, ol { margin: 0 0 16px 20px; padding: 0; }
+    li { margin: 8px 0; }
+
+    code {
+      background: #1b2545;
+      border: 1px solid #2d3a67;
+      border-radius: 6px;
+      padding: 1px 6px;
+      color: #dbe6ff;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.95em;
+    }
+
+    .notes {
+      margin-top: 18px;
+      border-top: 1px dashed var(--border);
+      padding-top: 14px;
+      color: var(--muted);
+      font-size: 0.96rem;
+    }
+
+    .notes strong { color: var(--accent); }
+
+    @media print {
+      body { background: white; color: black; }
+      .slide { border-color: #ccc; background: white; color: black; }
+      .notes { color: #444; border-top-color: #ccc; }
+      code { background: #f3f3f3; border-color: #ddd; color: #111; }
+    }
+  </style>
+</head>
+<body>
+  <main class="slides">
+    <section class="slide">
+      <h1>GitHub Actions Best Practices</h1>
+      <h2>15 practical habits for reliable CI/CD</h2>
+      <div class="notes"><strong>Presenter notes:</strong> Plan roughly one minute per slide and keep examples grounded in your team's workflows.</div>
+    </section>
+
+    <section class="slide">
+      <h1>1) Keep workflows focused and modular</h1>
+      <ul>
+        <li>Separate CI, CD, and maintenance workflows.</li>
+        <li>Reuse logic with <code>workflow_call</code> reusable workflows.</li>
+        <li>Keep each workflow easy to read and troubleshoot.</li>
+        <li>Example: <code>ci.yml</code> runs tests, while <code>deploy.yml</code> is only triggered after CI succeeds.</li>
+      </ul>
+      <div class="notes"><strong>Presenter notes:</strong> Focused workflows reduce blast radius and debugging time. Reusable workflows prevent copy/paste drift.</div>
+    </section>
+
+    <section class="slide">
+      <h1>2) Trigger only when needed</h1>
+      <ul>
+        <li>Use <code>on.push.paths</code>, <code>paths-ignore</code>, and branch filters.</li>
+        <li>Prefer targeted workflows over “run on everything”.</li>
+        <li>Reduces queue time and compute cost.</li>
+        <li>Example: docs-only changes skip backend integration tests using <code>paths-ignore: ['docs/**']</code>.</li>
+      </ul>
+      <div class="notes"><strong>Presenter notes:</strong> Emphasize ROI: fewer unnecessary runs means faster feedback and lower CI spend.</div>
+    </section>
+
+    <section class="slide">
+      <h1>3) Keep dependencies and Actions up to date</h1>
+      <ul>
+        <li>Enable automated updates for GitHub Actions and package manifests.</li>
+        <li>Review and merge update PRs on a regular cadence.</li>
+        <li>Use grouped updates to reduce review noise.</li>
+        <li>Example: Dependabot opens weekly PRs for Actions and npm dependencies with changelog links.</li>
+      </ul>
+      <div class="notes"><strong>Presenter notes:</strong> Outdated automation components increase risk and slow teams down. Regular updates keep security patches flowing.</div>
+    </section>
+
+    <section class="slide">
+      <h1>4) Lock down permissions by default</h1>
+      <ul>
+        <li>Start with least privilege: <code>permissions: {}</code>.</li>
+        <li>Elevate only per job when writes are required.</li>
+        <li>Avoid broad default <code>GITHUB_TOKEN</code> access.</li>
+        <li>Example: grant only <code>contents: read</code> for test jobs, and <code>pull-requests: write</code> only for comment bots.</li>
+      </ul>
+      <div class="notes"><strong>Presenter notes:</strong> Reinforce least privilege and how per-job permissions reduce impact from compromised steps.</div>
+    </section>
+
+    <section class="slide">
+      <h1>5) Protect secrets and avoid long-lived credentials</h1>
+      <ul>
+        <li>Store secrets in GitHub Secrets/Environments.</li>
+        <li>Prefer OpenID Connect (OIDC) + cloud short-lived tokens.</li>
+        <li>Never echo secrets to logs.</li>
+        <li>Example: AWS deploy job assumes an IAM role via OIDC instead of storing static AWS keys.</li>
+      </ul>
+      <div class="notes"><strong>Presenter notes:</strong> Highlight secret rotation burden and how OIDC removes long-lived credentials from repo settings.</div>
+    </section>
+
+    <section class="slide">
+      <h1>6) Use environment protections for deployments</h1>
+      <ul>
+        <li>Require reviewers for production environments.</li>
+        <li>Use wait timers and protected branches.</li>
+        <li>Add clear promotion gates (dev -&gt; stage -&gt; prod).</li>
+        <li>Example: production environment requires one approver before the deploy job can execute.</li>
+      </ul>
+      <div class="notes"><strong>Presenter notes:</strong> Frame this as a safety brake that catches mistakes right before release.</div>
+    </section>
+
+    <section class="slide">
+      <h1>7) Speed up workflows with caching and matrices</h1>
+      <ul>
+        <li>Cache dependencies (<code>actions/cache</code>, built-in setup cache).</li>
+        <li>Use matrix builds for OS/runtime coverage.</li>
+        <li>Combine with <code>fail-fast</code> settings intentionally.</li>
+        <li>Example: run Node tests on <code>{18,20}</code> with npm cache enabled to reduce install time.</li>
+      </ul>
+      <div class="notes"><strong>Presenter notes:</strong> Balance speed and confidence: cache for performance, matrix for compatibility coverage.</div>
+    </section>
+
+    <section class="slide">
+      <h1>8) Prevent duplicate work with concurrency controls</h1>
+      <ul>
+        <li>Use <code>concurrency</code> groups per branch/PR.</li>
+        <li>Enable <code>cancel-in-progress: true</code> for fast iteration.</li>
+        <li>Keep only the latest relevant run active.</li>
+        <li>Example: new commits to a PR automatically cancel older in-progress CI runs.</li>
+      </ul>
+      <div class="notes"><strong>Presenter notes:</strong> Call out developer experience gains: less waiting for outdated runs and clearer check signals.</div>
+    </section>
+
+    <section class="slide">
+      <h1>9) Make observability first-class</h1>
+      <ul>
+        <li>Name jobs/steps clearly.</li>
+        <li>Upload artifacts and test reports for debugging.</li>
+        <li>Use summaries (<code>GITHUB_STEP_SUMMARY</code>) for quick outcomes.</li>
+        <li>Example: upload failed Playwright screenshots and a markdown summary with pass/fail counts.</li>
+      </ul>
+      <div class="notes"><strong>Presenter notes:</strong> If a run fails at 2 a.m., logs and artifacts should make root cause obvious without rerunning.</div>
+    </section>
+
+    <section class="slide">
+      <h1>10) Standardize quality and security checks</h1>
+      <ul>
+        <li>Require status checks before merge.</li>
+        <li>Add CodeQL/Dependency review/secret scanning in CI.</li>
+        <li>Treat workflows as code: review, test, and version them.</li>
+        <li>Example: branch protection enforces CodeQL + unit tests before merge to <code>main</code>.</li>
+      </ul>
+      <div class="notes"><strong>Presenter notes:</strong> Position this as a consistent quality bar rather than relying on reviewer memory.</div>
+    </section>
+
+    <section class="slide">
+      <h1>11) Enforce timeouts and retry strategy</h1>
+      <ul>
+        <li>Set <code>timeout-minutes</code> for jobs and risky steps.</li>
+        <li>Add retries only where failures are transient.</li>
+        <li>Fail fast on deterministic errors.</li>
+        <li>Example: integration test job has <code>timeout-minutes: 20</code>; flaky network download step retries twice.</li>
+      </ul>
+      <div class="notes"><strong>Presenter notes:</strong> Stuck jobs consume capacity and hide real failures. Timeouts keep pipelines healthy.</div>
+    </section>
+
+    <section class="slide">
+      <h1>12) Use artifacts and outputs to share data safely</h1>
+      <ul>
+        <li>Prefer job <code>outputs</code> and uploaded artifacts over ad-hoc temp files.</li>
+        <li>Keep interfaces explicit between jobs.</li>
+        <li>Retain artifacts for an intentional period.</li>
+        <li>Example: build job uploads <code>app.tar.gz</code>; deploy job downloads that exact artifact.</li>
+      </ul>
+      <div class="notes"><strong>Presenter notes:</strong> Emphasize reproducibility: deploy exactly what was tested, not a rebuilt variant.</div>
+    </section>
+
+    <section class="slide">
+      <h1>13) Make self-hosted runners secure and ephemeral</h1>
+      <ul>
+        <li>Isolate runners by trust level and repository scope.</li>
+        <li>Patch runner images and lock down network access.</li>
+        <li>Prefer ephemeral runners for untrusted code.</li>
+        <li>Example: pull requests from forks run on GitHub-hosted runners; internal release jobs use isolated self-hosted runners.</li>
+      </ul>
+      <div class="notes"><strong>Presenter notes:</strong> Runner compromise risk is real; segmentation and ephemeral hosts reduce persistence.</div>
+    </section>
+
+    <section class="slide">
+      <h1>14) Use reusable workflow templates and versioning</h1>
+      <ul>
+        <li>Publish common workflows in a central repo.</li>
+        <li>Reference reusable workflows by SHA/tag policy.</li>
+        <li>Version and roll out updates intentionally.</li>
+        <li>Example: all services call <code>org/platform/.github/workflows/node-ci.yml@v3</code> for consistent CI behavior.</li>
+      </ul>
+      <div class="notes"><strong>Presenter notes:</strong> Focus on scaling practices across teams while keeping change management controlled.</div>
+    </section>
+
+    <section class="slide">
+      <h1>15) Measure and continuously improve pipeline health</h1>
+      <ul>
+        <li>Track lead time, queue time, and flaky test rate.</li>
+        <li>Review top failure causes and automate fixes.</li>
+        <li>Set quarterly workflow improvement goals.</li>
+        <li>Example: team dashboard shows median CI duration dropped 30% after cache and test-splitting improvements.</li>
+      </ul>
+      <div class="notes"><strong>Presenter notes:</strong> Close with a continuous improvement mindset: workflows are products that need metrics and iteration.</div>
+    </section>
+
+    <section class="slide">
+      <h1>Closing</h1>
+      <h2>Start small: pick 2 best practices this week</h2>
+      <ol>
+        <li>Tighten token permissions</li>
+        <li>Enable Dependabot updates for Actions</li>
+        <li>Enable concurrency cancellation</li>
+      </ol>
+      <div class="notes"><strong>Presenter notes:</strong> End with an action-oriented close and ask the audience to commit to two concrete improvements.</div>
+    </section>
+  </main>
+</body>
+</html>
